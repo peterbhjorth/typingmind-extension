@@ -36,17 +36,4 @@
 
   let lastChatKey = null;
   setInterval(async () => {
-    const chat = await getChatsFromIndexedDB();
-    if (chat && chat.key !== lastChatKey) {
-      lastChatKey = chat.key;
-      const topic = chat.data?.title || chat.key;
-      const messages = chat.data?.messages || [];
-      const conversation = messages
-        .map(m => `${m.role}: ${m.content}`)
-        .join('\n');
-      if (conversation) {
-        saveToSharePoint(topic, conversation);
-      }
-    }
-  }, 30000);
-})();
+    const chat = await getChatsFrom
