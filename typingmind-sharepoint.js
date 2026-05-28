@@ -1,42 +1,15 @@
 (function() {
-  const CLIENT_ID = 'b7c27904-0351-4e19-a901-932fd4e68bc3';
-  const TENANT_ID = '0a694ad7-a147-4bb4-b730-ee5caf3b3b8c';
-  const CLIENT_SECRET = 'de8c0c68-c3ac-4251-81b3-5d762b3bdbbe';
-  const SHAREPOINT_SITE = 'sovisas.sharepoint.com:/sites/Distress:';
-  const FOLDER_PATH = '/Shared Documents/AI Workspace/Chats/Incoming';
+  const AZURE_FUNCTION_URL = 'https://typingmind-sharepoint-gyaraubvcpfac7fg.westeurope-01.azurewebsites.net/api/SaveChat';
 
-  async function getAccessToken() {
-    const response = await fetch(
-      `https://login.microsoftonline.com/${TENANT_ID}/oauth2/v2.0/token`,
-      {
-        method: 'POST',
-        headers: {'Content-Type': 'application/x-www-form-urlencoded'},
-        body: `client_id=${CLIENT_ID}&client_secret=${CLIENT_SECRET}&scope=https://graph.microsoft.com/.default&grant_type=client_credentials`
-      }
-    );
-    const data = await response.json();
-    return data.access_token;
-  }
-
-  async function saveToSharePoint(topic, conversation) {
-    try {
-      const token = await getAccessToken();
-      const fileName = `${topic}_${new Date().toISOString().split('T')[0]}.txt`;
-      await fetch(
-        `https://graph.microsoft.com/v1.0/sites/${SHAREPOINT_SITE}/drive/root:${FOLDER_PATH}/${fileName}:/content`,
-        {
-          method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'text/plain'
-          },
-          body: conversation
-        }
-      );
-      console.log('Chat saved to SharePoint!');
-    } catch(err) {
-      console.log('Error saving chat:', err);
-    }
+  function saveToSharePoint(topic, conversation) {
+    fetch(AZURE_FUNCTION_URL, {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({topic, conversation})
+    })
+    .then(res => res.text())
+    .then(result => console.log('SharePoint result:', result))
+    .catch(err => console.log('Error saving chat:', err));
   }
 
   function getChatsFromIndexedDB() {
