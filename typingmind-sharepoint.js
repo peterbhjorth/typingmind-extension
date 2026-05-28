@@ -36,4 +36,30 @@
 
   let lastChatKey = null;
   setInterval(async () => {
-    const chat = await getChatsFrom
+    const chat = await getChatsFromIndexedDB();
+    if (chat && chat.key !== lastChatKey) {
+      lastChatKey = chat.key;
+      const topic = chat.data?.title || chat.key;
+      const messages = chat.data?.messages || [];
+      const conversation = messages
+        .map(m => {
+          const role = m.role || 'unknown';
+          let content = '';
+          if (typeof m.content === 'string') {
+            content = m.content;
+          } else if (Array.isArray(m.content)) {
+            content = m.content
+              .map(c => c.text || c.content || JSON.stringify(c))
+              .join(' ');
+          } else {
+            content = JSON.stringify(m.content);
+          }
+          return role + ': ' + content;
+        })
+        .join('\n');
+      if (conversation) {
+        saveToSharePoint(topic, conversation);
+      }
+    }
+  }, 30000);
+})();
