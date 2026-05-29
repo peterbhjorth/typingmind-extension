@@ -34,42 +34,62 @@
     });
   }
 
-  let lastChatKey = null;
-  let lastMessageCount = 0;
-
-  setInterval(async () => {
+  async function saveCurrentChat() {
     const chat = await getChatsFromIndexedDB();
-    if (chat) {
-      const messages = chat.data?.messages || [];
-      const messageCount = messages.length;
-      
-      // Save if new chat OR if messages have been added
-      if (chat.key !== lastChatKey || messageCount !== lastMessageCount) {
-        lastChatKey = chat.key;
-        lastMessageCount = messageCount;
-        
-        const topic = chat.data?.title || chat.key;
-        const conversation = messages
-          .map(m => {
-            const role = m.role || 'unknown';
-            let content = '';
-            if (typeof m.content === 'string') {
-              content = m.content;
-            } else if (Array.isArray(m.content)) {
-              content = m.content
-                .map(c => c.text || c.content || JSON.stringify(c))
-                .join(' ');
-            } else {
-              content = JSON.stringify(m.content);
-            }
-            return role + ': ' + content;
-          })
-          .join('\n');
-          
-        if (conversation) {
-          saveToSharePoint(topic, conversation);
+    if (!chat) return;
+    
+    const messages = chat.data?.messages || [];
+    if (messages.length === 0) return;
+    
+    const topic = chat.data?.title || chat.key;
+    const conversation = messages
+      .map(m => {
+        const role = m.role || 'unknown';
+        let content = '';
+        if (typeof m.content === 'string') {
+          content = m.content;
+        } else if (Array.isArray(m.content)) {
+          content = m.content
+            .map(c => c.text || c.content || JSON.stringify(c))
+            .join(' ');
+        } else {
+          content = JSON.stringify(m.content);
         }
-      }
+        return role + ': ' + content;
+      })
+      .join('\n');
+      
+    if (conversation) {
+      console.log('Saving chat to SharePoint...');
+      saveToSharePoint(topic, conversation);
     }
-  }, 300000); // Every 5 minutes to save costs!
+  }
+
+  // Save when browser/tab closes
+  window.addEventListener('beforeunload', function() {
+    saveCurrentChat();
+  });
+
+  // Save at 23:59 every day
+  function scheduleEndOfDay() {
+    const now = new Date();
+    const endOfDay = new Date();
+    endOfDay.setHours(23, 59, 0, 0);
+    
+    // If already past 23:59, schedule for tomorrow
+    if (now > endOfDay) {
+      endOfDay.setDate(endOfDay.getDate() + 1);
+    }
+    
+    const msUntilEndOfDay = endOfDay - now;
+    console.log('Next save scheduled in:', Math.round(msUntilEndOfDay/60000), 'minutes');
+    
+    setTimeout(async function() {
+      await saveCurrentChat();
+      scheduleEndOfDay(); // Schedule next day
+    }, msUntilEndOfDay);
+  }
+
+  scheduleEndOfDay();
+  console.log('SharePoint extension loaded successfully!');
 })();
