@@ -35,31 +35,41 @@
   }
 
   let lastChatKey = null;
+  let lastMessageCount = 0;
+
   setInterval(async () => {
     const chat = await getChatsFromIndexedDB();
-    if (chat && chat.key !== lastChatKey) {
-      lastChatKey = chat.key;
-      const topic = chat.data?.title || chat.key;
+    if (chat) {
       const messages = chat.data?.messages || [];
-      const conversation = messages
-        .map(m => {
-          const role = m.role || 'unknown';
-          let content = '';
-          if (typeof m.content === 'string') {
-            content = m.content;
-          } else if (Array.isArray(m.content)) {
-            content = m.content
-              .map(c => c.text || c.content || JSON.stringify(c))
-              .join(' ');
-          } else {
-            content = JSON.stringify(m.content);
-          }
-          return role + ': ' + content;
-        })
-        .join('\n');
-      if (conversation) {
-        saveToSharePoint(topic, conversation);
+      const messageCount = messages.length;
+      
+      // Save if new chat OR if messages have been added
+      if (chat.key !== lastChatKey || messageCount !== lastMessageCount) {
+        lastChatKey = chat.key;
+        lastMessageCount = messageCount;
+        
+        const topic = chat.data?.title || chat.key;
+        const conversation = messages
+          .map(m => {
+            const role = m.role || 'unknown';
+            let content = '';
+            if (typeof m.content === 'string') {
+              content = m.content;
+            } else if (Array.isArray(m.content)) {
+              content = m.content
+                .map(c => c.text || c.content || JSON.stringify(c))
+                .join(' ');
+            } else {
+              content = JSON.stringify(m.content);
+            }
+            return role + ': ' + content;
+          })
+          .join('\n');
+          
+        if (conversation) {
+          saveToSharePoint(topic, conversation);
+        }
       }
     }
-  }, 30000);
+  }, 300000); // Every 5 minutes to save costs!
 })();
