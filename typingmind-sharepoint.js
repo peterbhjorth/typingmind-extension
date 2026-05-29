@@ -41,7 +41,9 @@
     const messages = chat.data?.messages || [];
     if (messages.length === 0) return;
     
-    const topic = chat.data?.title || chat.key;
+    // Use chatTitle instead of title!
+    const topic = chat.data?.chatTitle || chat.data?.title || chat.key;
+    
     const conversation = messages
       .map(m => {
         const role = m.role || 'unknown';
@@ -60,7 +62,7 @@
       .join('\n');
       
     if (conversation) {
-      console.log('Saving chat to SharePoint...');
+      console.log('Saving chat:', topic);
       saveToSharePoint(topic, conversation);
     }
   }
@@ -76,7 +78,6 @@
     const endOfDay = new Date();
     endOfDay.setHours(23, 59, 0, 0);
     
-    // If already past 23:59, schedule for tomorrow
     if (now > endOfDay) {
       endOfDay.setDate(endOfDay.getDate() + 1);
     }
@@ -86,7 +87,7 @@
     
     setTimeout(async function() {
       await saveCurrentChat();
-      scheduleEndOfDay(); // Schedule next day
+      scheduleEndOfDay();
     }, msUntilEndOfDay);
   }
 
